@@ -47,9 +47,12 @@ jobs:
         with:
           channel: stable
           cache: true
-
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Create .env file from Secrets
+        run: |
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
 
       - name: Run tests before release
         run: flutter test
