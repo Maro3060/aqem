@@ -33,8 +33,9 @@ jobs:
       # isn't fully formatted yet, so failing on it would block every PR.
       # Run `dart format lib test` locally when you're ready to adopt it.
       - name: Check formatting (informational)
-        run: dart format --output=none --set-exit-if-changed lib test || \
-              echo "::warning::Some files are not formatted. Run 'dart format lib test'."
+        run: |
+            dart format --output=none --set-exit-if-changed lib test || \
+            echo "::warning::Some files are not formatted. Run 'dart format lib test'."
 
       # Gate only on errors, not warnings/infos: the codebase has ~75 pre-existing
       # style lints (avoid_print, unused fields, deprecations). Tighten this to
