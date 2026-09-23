@@ -71,12 +71,12 @@ jobs:
       - name: Configure signing properties
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            cat > android/key.properties <<EOF
-            storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-            keyPassword=${{ secrets.KEY_PASSWORD }}
-            keyAlias=${{ secrets.KEY_ALIAS }}
-            storeFile=upload-keystore.jks
-            EOF
+            {
+              echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}"
+              echo "keyPassword=${{ secrets.KEY_PASSWORD }}"
+              echo "keyAlias=${{ secrets.KEY_ALIAS }}"
+              echo "storeFile=upload-keystore.jks"
+            } > android/key.properties
           fi
 
       - name: Build APKs
