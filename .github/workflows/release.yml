@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'                 # e.g. v1.0.0, v1.1.0 — auto creates a Release
+  workflow_dispatch:         # Manual "Run workflow" button on GitHub
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # needed to create the GitHub Release + upload assets
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tag push already has a tag; manual dispatch needs one created/detected too.
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Resolved tag: $(cat $GITHUB_OUTPUT | grep '^tag=')"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests before release
+        run: flutter test
+
+      - name: Decode signing keystore (if provided)
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+            echo "Keystore decoded."
+          else
+            echo "No KEYSTORE_BASE64 secret set — building with debug/unsigned config."
+          fi
+
+      # IMPORTANT: wire ${{ secrets }} into android/key.properties in your build,
+      # then set up a signingConfig for release. Basic example below.
+      - name: Configure signing properties
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            cat > android/key.properties <<EOF
+            storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+            keyPassword=${{ secrets.KEY_PASSWORD }}
+            keyAlias=${{ secrets.KEY_ALIAS }}
+            storeFile=upload-keystore.jks
+            EOF
+          fi
+
+      - name: Build APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Create GitHub Release & attach APKs
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Aqem ${{ steps.tag.outputs.tag }}
+          body: |
+            ## Aqem Release ${{ steps.tag.outputs.tag }}
+
+            _Changelog will be expanded here as releases mature._
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+          draft: true
+          prerelease: false

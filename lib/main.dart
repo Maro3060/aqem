@@ -15,10 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
-  print("API Key exists: ${dotenv.env['GOOGLE_API_KEY'] != null}");
-  print(
-    "API Key first 10 chars: ${dotenv.env['GOOGLE_API_KEY']?.substring(0, 10)}",
-  );
   TimeThemeManager.init();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await NotificationService.init();
