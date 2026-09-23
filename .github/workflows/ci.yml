@@ -43,5 +43,9 @@ jobs:
       - name: Static analysis
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
+      - name: Create .env file from Secrets
+        run: |
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
+
       - name: Run tests
         run: flutter test
