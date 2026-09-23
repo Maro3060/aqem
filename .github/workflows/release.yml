@@ -36,6 +36,12 @@ jobs:
           fi
           echo "Resolved tag: $(cat $GITHUB_OUTPUT | grep '^tag=')"
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -70,22 +76,8 @@ jobs:
             EOF
           fi
 
-      - name: Build APK (all ABIs + split)
-        run: flutter build apk --release
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-
-      - name: Build split APKs (per ABI)
+      - name: Build APKs
         run: flutter build apk --release --split-per-abi
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-
-      - name: Compute APK path
-        id: apk
-        run: |
-          APK=$(find build/app/outputs/flutter-apk -name 'app-release.apk' | head -1)
-          echo "apk=$APK" >> "$GITHUB_OUTPUT"
-          echo "apk=${APK}" 
 
       - name: Create GitHub Release & attach APKs
         uses: softprops/action-gh-release@v2
@@ -94,12 +86,6 @@ jobs:
           name: Aqem ${{ steps.tag.outputs.tag }}
           body: |
             ## Aqem Release ${{ steps.tag.outputs.tag }}
-
-            Automated release built by the CI/CD pipeline.
-
-            ### What's included
-            - Universal APK (all ABIs)
-            - Split APKs per ABI
 
             _Changelog will be expanded here as releases mature._
           files: |
